@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mile-compass",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-30",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mile-compass-db",
+      "database_id": "4881ffaf-4c1f-4f04-8aea-783ac71431fb"
+    }
+  ]
+}
