@@ -66,10 +66,9 @@ async function handleSearch(url, env) {
   const region = destAirport.region;
 
   const PROGRAM_FIELDS = `p.name_ja, p.name_en, p.alliance, p.can_book_jal, p.can_book_ana,
-              p.bonvoy_partner, p.bonvoy_ratio, p.bonvoy_bonus_block, p.bonvoy_bonus_miles,
               p.infant_rule, p.infant_pct, p.infant_notes_ja, p.infant_confidence, p.chart_confidence, p.notes_ja`;
 
-  const [regionRows, dynamicRows, distanceBandRows, flightRows] = await Promise.all([
+  const [regionRows, dynamicRows, distanceBandRows, flightRows, cardRateRows] = await Promise.all([
     env.DB.prepare(
       `SELECT rp.*, ${PROGRAM_FIELDS}
        FROM region_pairs rp JOIN programs p ON p.code = rp.program_code
@@ -96,7 +95,17 @@ async function handleSearch(url, env) {
     )
       .bind(origin, dest, dest, origin)
       .all(),
+    env.DB.prepare(
+      `SELECT ctr.*, cc.name_ja AS card_name_ja, cc.points_name_ja
+       FROM card_transfer_rates ctr JOIN credit_cards cc ON cc.code = ctr.card_code`
+    ).all(),
   ]);
+
+  const cardRatesByProgram = new Map();
+  for (const r of cardRateRows.results) {
+    if (!cardRatesByProgram.has(r.program_code)) cardRatesByProgram.set(r.program_code, []);
+    cardRatesByProgram.get(r.program_code).push(r);
+  }
 
   const bandsByProgram = new Map();
   for (const b of distanceBandRows.results) {
@@ -133,6 +142,7 @@ async function handleSearch(url, env) {
       stopsFilter,
       withInfant,
       isDynamic: false,
+      cardRates: cardRatesByProgram.get(row.program_code) || [],
     });
   }
 
@@ -143,6 +153,7 @@ async function handleSearch(url, env) {
       stopsFilter,
       withInfant,
       isDynamic: true,
+      cardRates: cardRatesByProgram.get(row.program_code) || [],
     });
   }
 
@@ -153,6 +164,7 @@ async function handleSearch(url, env) {
       stopsFilter,
       withInfant,
       isDynamic: false,
+      cardRates: cardRatesByProgram.get(row.program_code) || [],
     });
   }
 
@@ -170,7 +182,7 @@ async function handleSearch(url, env) {
 }
 
 function addRowsForProgram(cabinResults, row, flight, opts) {
-  const { distanceMiles, stopsFilter, withInfant, isDynamic } = opts;
+  const { distanceMiles, stopsFilter, withInfant, isDynamic, cardRates } = opts;
   const stops = flight ? flight.stops : null;
 
   if (stopsFilter === "nonstop" && stops !== 0) return;
@@ -187,12 +199,17 @@ function addRowsForProgram(cabinResults, row, flight, opts) {
     }
     if (milesLow == null) continue;
 
-    const bonvoyLow = row.bonvoy_partner
-      ? milesToBonvoyPoints(milesLow, row.bonvoy_ratio, row.bonvoy_bonus_block, row.bonvoy_bonus_miles)
-      : null;
-    const bonvoyHigh = row.bonvoy_partner
-      ? milesToBonvoyPoints(milesHigh, row.bonvoy_ratio, row.bonvoy_bonus_block, row.bonvoy_bonus_miles)
-      : null;
+    const cardConversions = (cardRates || []).map((cr) => ({
+      card_code: cr.card_code,
+      card_name_ja: cr.card_name_ja,
+      points_name_ja: cr.points_name_ja,
+      points_low: milesToCardPoints(milesLow, cr.ratio_points_per_mile, cr.bonus_block, cr.bonus_miles),
+      points_high: isDynamic
+        ? milesToCardPoints(milesHigh, cr.ratio_points_per_mile, cr.bonus_block, cr.bonus_miles)
+        : null,
+      notes_ja: cr.notes_ja,
+      confidence: cr.confidence,
+    }));
 
     let infantMiles = null;
     if (withInfant && row.infant_rule === "reduced_percentage" && row.infant_pct != null) {
@@ -215,9 +232,7 @@ function addRowsForProgram(cabinResults, row, flight, opts) {
       miles_high: isDynamic ? milesHigh : null,
       miles_sort: milesLow,
       distance_miles: distanceMiles,
-      bonvoy_partner: !!row.bonvoy_partner,
-      bonvoy_points_low: bonvoyLow,
-      bonvoy_points_high: isDynamic ? bonvoyHigh : null,
+      card_conversions: cardConversions,
       infant_rule: row.infant_rule,
       infant_notes_ja: row.infant_notes_ja,
       infant_confidence: row.infant_confidence,
@@ -228,7 +243,7 @@ function addRowsForProgram(cabinResults, row, flight, opts) {
   }
 }
 
-function milesToBonvoyPoints(miles, ratio, bonusBlock, bonusMiles) {
+function milesToCardPoints(miles, ratio, bonusBlock, bonusMiles) {
   if (!miles || !ratio) return null;
   if (bonusBlock && bonusMiles) {
     const milesPerBlock = bonusBlock / ratio + bonusMiles;

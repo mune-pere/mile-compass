@@ -11,6 +11,8 @@ const ALLIANCE_LABEL = {
   none: "非加盟",
 };
 const STOPS_LABEL = { 0: "直行", 1: "1経由" };
+const CARD_ORDER = ["BONVOY", "AMEX_GP"];
+const CARD_SHORT_LABEL = { BONVOY: "Bonvoyポイント", AMEX_GP: "Amex GPポイント" };
 
 function setupAutocomplete(inputId, hiddenId, suggestionsId, type) {
   const input = document.getElementById(inputId);
@@ -123,8 +125,23 @@ function renderCabin(cabin) {
     return;
   }
 
+  // このカビンに登場するカードだけ列として出す(CARD_ORDER優先、それ以外はコード順)
+  const cardCodesPresent = new Set();
+  rows.forEach((r) => (r.card_conversions || []).forEach((c) => cardCodesPresent.add(c.card_code)));
+  const cardColumns = [
+    ...CARD_ORDER.filter((c) => cardCodesPresent.has(c)),
+    ...[...cardCodesPresent].filter((c) => !CARD_ORDER.includes(c)).sort(),
+  ];
+  const cardFullNameByCode = {};
+  rows.forEach((r) => (r.card_conversions || []).forEach((c) => (cardFullNameByCode[c.card_code] = c.card_name_ja)));
+  const cardNameByCode = {};
+  cardColumns.forEach((code) => (cardNameByCode[code] = CARD_SHORT_LABEL[code] || cardFullNameByCode[code] || code));
+
   const table = document.createElement("table");
   table.className = "result-table";
+  const cardHeaders = cardColumns
+    .map((code) => `<th title="${cardFullNameByCode[code] || ""}">${cardNameByCode[code]}換算</th>`)
+    .join("");
   table.innerHTML = `
     <thead>
       <tr>
@@ -133,7 +150,7 @@ function renderCabin(cabin) {
         <th>実際に乗る航空会社</th>
         <th>直行/経由</th>
         <th>必要マイル(片道)</th>
-        <th>Bonvoyポイント換算</th>
+        ${cardHeaders}
         <th>幼児(2歳未満)特典</th>
       </tr>
     </thead>
@@ -147,12 +164,6 @@ function renderCabin(cabin) {
     const milesText = row.is_dynamic
       ? `${row.miles_low.toLocaleString()}〜${row.miles_high.toLocaleString()}`
       : row.miles_low.toLocaleString();
-
-    const bonvoyText = row.bonvoy_partner
-      ? row.is_dynamic
-        ? `${row.bonvoy_points_low.toLocaleString()}〜${row.bonvoy_points_high.toLocaleString()}pt`
-        : `${row.bonvoy_points_low.toLocaleString()}pt`
-      : "対象外";
 
     const stopsText =
       row.stops === null
@@ -180,14 +191,26 @@ function renderCabin(cabin) {
         ? `<span class="confidence-flag">要確認</span>`
         : "";
 
+    const cardCells = cardColumns
+      .map((code) => {
+        const c = (row.card_conversions || []).find((cc) => cc.card_code === code);
+        if (!c || c.points_low == null) return `<td data-label="${cardNameByCode[code] || code}換算">対象外</td>`;
+        const text = c.points_high != null
+          ? `${c.points_low.toLocaleString()}〜${c.points_high.toLocaleString()}pt`
+          : `${c.points_low.toLocaleString()}pt`;
+        const flag = c.confidence && c.confidence !== "high" ? ` <span class="confidence-flag" title="${c.notes_ja || ""}">要確認</span>` : "";
+        return `<td data-label="${cardNameByCode[code] || code}換算">${text}${flag}</td>`;
+      })
+      .join("");
+
     tr.innerHTML = `
-      <td><span class="rank-badge">${i + 1}</span></td>
-      <td>${row.program_name_ja}</td>
-      <td>${airlineText}</td>
-      <td>${stopsText}${viaText}</td>
-      <td class="miles-cell">${milesText}マイル ${chartFlag}</td>
-      <td>${bonvoyText}</td>
-      <td>${infantText}</td>
+      <td data-label="順位"><span class="rank-badge">${i + 1}</span></td>
+      <td data-label="マイルプログラム">${row.program_name_ja}</td>
+      <td data-label="実際に乗る航空会社">${airlineText}</td>
+      <td data-label="直行/経由">${stopsText}${viaText}</td>
+      <td data-label="必要マイル(片道)" class="miles-cell">${milesText}マイル ${chartFlag}</td>
+      ${cardCells}
+      <td data-label="幼児(2歳未満)特典">${infantText}</td>
     `;
     tbody.appendChild(tr);
   });

@@ -1,3 +1,13 @@
+-- スキーマ変更時に毎回クリーンな状態から作り直す(参照データのみのため破壊的変更でも問題なし)
+DROP TABLE IF EXISTS card_transfer_rates;
+DROP TABLE IF EXISTS credit_cards;
+DROP TABLE IF EXISTS dynamic_ranges;
+DROP TABLE IF EXISTS region_pairs;
+DROP TABLE IF EXISTS distance_bands;
+DROP TABLE IF EXISTS flights;
+DROP TABLE IF EXISTS programs;
+DROP TABLE IF EXISTS airports;
+
 -- 空港マスタ（日本発着の主要空港＋主要目的地空港）
 CREATE TABLE IF NOT EXISTS airports (
   iata TEXT PRIMARY KEY,
@@ -20,10 +30,6 @@ CREATE TABLE IF NOT EXISTS programs (
   pricing_type TEXT NOT NULL, -- distance_band / region_pair / dynamic
   can_book_jal INTEGER NOT NULL DEFAULT 0, -- JAL運航便を特典交換できるか
   can_book_ana INTEGER NOT NULL DEFAULT 0, -- ANA運航便を特典交換できるか
-  bonvoy_partner INTEGER NOT NULL DEFAULT 0,
-  bonvoy_ratio REAL, -- Bonvoyポイント:マイル の比率（例 3 = 3ポイントで1マイル）
-  bonvoy_bonus_block INTEGER, -- ボーナス適用単位（例 60000ポイント単位）
-  bonvoy_bonus_miles INTEGER, -- ボーナス単位ごとの追加マイル数（例 5000）
   infant_rule TEXT, -- no_miles_required / reduced_percentage / full_adult_miles_required / child_fare_required / varies
   infant_pct REAL, -- reduced_percentageの場合の割合(0-1)
   infant_notes_ja TEXT,
@@ -64,6 +70,27 @@ CREATE TABLE IF NOT EXISTS dynamic_ranges (
   premium_economy_min INTEGER, premium_economy_max INTEGER,
   business_min INTEGER, business_max INTEGER,
   first_min INTEGER, first_max INTEGER
+);
+
+-- クレジットカードのポイントプログラム（Marriott Bonvoy、アメックスGPなど）
+CREATE TABLE IF NOT EXISTS credit_cards (
+  code TEXT PRIMARY KEY, -- 例: BONVOY, AMEX_GP
+  name_ja TEXT NOT NULL,
+  points_name_ja TEXT NOT NULL, -- 例: Marriott Bonvoyポイント、メンバーシップ・リワードポイント
+  annual_fee_note_ja TEXT, -- 年会費・移行に必要な追加プログラムの注記
+  notes_ja TEXT
+);
+
+-- カードポイント→マイルの交換レート（プログラムごと、カードごと）
+CREATE TABLE IF NOT EXISTS card_transfer_rates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  card_code TEXT NOT NULL REFERENCES credit_cards(code),
+  program_code TEXT NOT NULL REFERENCES programs(code),
+  ratio_points_per_mile REAL NOT NULL, -- 例 3 = 3ポイントで1マイル、1 = 1ポイントで1マイル
+  bonus_block INTEGER, -- ボーナス適用単位（例 60000ポイント単位）。なければNULL
+  bonus_miles INTEGER, -- ボーナス単位ごとの追加マイル数。なければNULL
+  notes_ja TEXT,
+  confidence TEXT -- high/medium/low
 );
 
 -- 実際に飛べる便（運航会社・直行/経由）のネットワーク情報
