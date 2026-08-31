@@ -4,15 +4,31 @@ const CABIN_LABEL = {
   business: "ビジネス",
   first: "ファースト",
 };
-const ALLIANCE_LABEL = {
-  star: "スターアライアンス",
-  oneworld: "ワンワールド",
-  skyteam: "スカイチーム",
-  none: "非加盟",
-};
+const ALLIANCE_LABEL = { star: "STAR ALLIANCE", oneworld: "ONEWORLD", skyteam: "SKYTEAM", none: "非加盟" };
+const ALLIANCE_COLOR = { star: "#0f3092", oneworld: "#6f2c91", skyteam: "#00695c", none: "#8e8e93" };
 const STOPS_LABEL = { 0: "直行", 1: "1経由" };
 const CARD_ORDER = ["BONVOY", "AMEX_GP"];
-const CARD_SHORT_LABEL = { BONVOY: "Bonvoyポイント", AMEX_GP: "Amex GPポイント" };
+const CARD_SHORT_LABEL = { BONVOY: "Bonvoy", AMEX_GP: "Amex GP" };
+const CARD_ICON = { BONVOY: "M", AMEX_GP: "A" };
+
+const AIRLINE_COLOR = {
+  JL: "#C8102E", NH: "#13448F", UA: "#005DAA", DL: "#C01933", AA: "#0078D2",
+  HA: "#653A75", TG: "#5C2D91", SQ: "#0A3161", CX: "#006564", KE: "#0F3092",
+  OZ: "#E4002B", CI: "#C00000", BR: "#006A4E", MU: "#7B1F3A", QF: "#E40521",
+  BA: "#075AAA", AF: "#002157", LH: "#05164D", KL: "#00A1DE", TK: "#E81932",
+  EK: "#D71921", QR: "#5C0632", AI: "#D9251D", AC: "#F01428",
+};
+
+const FLAG_EMOJI = {
+  "日本": "🇯🇵", "アメリカ": "🇺🇸", "タイ": "🇹🇭", "シンガポール": "🇸🇬", "香港": "🇭🇰",
+  "韓国": "🇰🇷", "台湾": "🇹🇼", "中国": "🇨🇳", "オーストラリア": "🇦🇺", "イギリス": "🇬🇧",
+  "フランス": "🇫🇷", "ドイツ": "🇩🇪", "オランダ": "🇳🇱", "トルコ": "🇹🇷",
+  "アラブ首長国連邦": "🇦🇪", "カタール": "🇶🇦", "インド": "🇮🇳", "カナダ": "🇨🇦",
+};
+
+function flagFor(airport) {
+  return (airport && FLAG_EMOJI[airport.country_ja]) || "🌐";
+}
 
 function setupAutocomplete(inputId, hiddenId, suggestionsId, type) {
   const input = document.getElementById(inputId);
@@ -44,7 +60,7 @@ function setupAutocomplete(inputId, hiddenId, suggestionsId, type) {
     }
     for (const a of airports) {
       const li = document.createElement("li");
-      li.textContent = `${a.name_ja}（${a.iata}）- ${a.city_ja}`;
+      li.textContent = `${flagFor(a)} ${a.name_ja}（${a.iata}）- ${a.city_ja}`;
       li.addEventListener("click", () => {
         input.value = `${a.city_ja}（${a.iata}）`;
         hidden.value = a.iata;
@@ -78,6 +94,7 @@ document.getElementById("search-form").addEventListener("submit", async (e) => {
   const dest = document.getElementById("dest-iata").value;
   const stops = document.getElementById("stops-select").value;
   const infant = document.getElementById("infant-check").checked ? "1" : "0";
+  const date = document.getElementById("depart-date").value;
 
   if (!origin || !dest) {
     errorEl.textContent = "候補一覧から出発地・到着地を選択してください。";
@@ -85,9 +102,10 @@ document.getElementById("search-form").addEventListener("submit", async (e) => {
     return;
   }
 
-  const res = await fetch(
-    `/api/search?origin=${origin}&dest=${dest}&stops=${stops}&infant=${infant}`
-  );
+  const params = new URLSearchParams({ origin, dest, stops, infant });
+  if (date) params.set("date", date);
+
+  const res = await fetch(`/api/search?${params.toString()}`);
   if (!res.ok) {
     errorEl.textContent = await res.text();
     errorEl.classList.remove("hidden");
@@ -111,7 +129,11 @@ document.getElementById("cabin-tabs").addEventListener("click", (e) => {
 function renderSummary(data) {
   const el = document.getElementById("result-summary");
   el.classList.remove("hidden");
-  el.textContent = `${data.origin.city_ja}（${data.origin.iata}） → ${data.destination.city_ja}（${data.destination.iata}） 概算距離 約${data.distance_miles.toLocaleString()}マイル / 地域: ${data.region}`;
+  const seasonNote = data.season_note_ja ? ` <span class="distance-pill">${data.season_note_ja}</span>` : "";
+  el.innerHTML = `
+    <span>${flagFor(data.origin)} <strong>${data.origin.city_ja}（${data.origin.iata}）</strong> → ${flagFor(data.destination)} <strong>${data.destination.city_ja}（${data.destination.iata}）</strong></span>
+    <span class="distance-pill">約${data.distance_miles.toLocaleString()}マイル</span>${seasonNote}
+  `;
 }
 
 function renderCabin(cabin) {
@@ -125,95 +147,88 @@ function renderCabin(cabin) {
     return;
   }
 
-  // このカビンに登場するカードだけ列として出す(CARD_ORDER優先、それ以外はコード順)
-  const cardCodesPresent = new Set();
-  rows.forEach((r) => (r.card_conversions || []).forEach((c) => cardCodesPresent.add(c.card_code)));
-  const cardColumns = [
-    ...CARD_ORDER.filter((c) => cardCodesPresent.has(c)),
-    ...[...cardCodesPresent].filter((c) => !CARD_ORDER.includes(c)).sort(),
-  ];
-  const cardFullNameByCode = {};
-  rows.forEach((r) => (r.card_conversions || []).forEach((c) => (cardFullNameByCode[c.card_code] = c.card_name_ja)));
-  const cardNameByCode = {};
-  cardColumns.forEach((code) => (cardNameByCode[code] = CARD_SHORT_LABEL[code] || cardFullNameByCode[code] || code));
-
-  const table = document.createElement("table");
-  table.className = "result-table";
-  const cardHeaders = cardColumns
-    .map((code) => `<th title="${cardFullNameByCode[code] || ""}">${cardNameByCode[code]}換算</th>`)
-    .join("");
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>順位</th>
-        <th>マイルプログラム</th>
-        <th>実際に乗る航空会社</th>
-        <th>直行/経由</th>
-        <th>必要マイル(片道)</th>
-        ${cardHeaders}
-        <th>幼児(2歳未満)特典</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  `;
-  const tbody = table.querySelector("tbody");
+  const infantChecked = document.getElementById("infant-check").checked;
 
   rows.forEach((row, i) => {
-    const tr = document.createElement("tr");
+    const card = document.createElement("article");
+    card.className = "result-card" + (i === 0 ? " rank-1" : "");
 
     const milesText = row.is_dynamic
       ? `${row.miles_low.toLocaleString()}〜${row.miles_high.toLocaleString()}`
       : row.miles_low.toLocaleString();
 
-    const stopsText =
-      row.stops === null
-        ? "経路データ準備中"
-        : STOPS_LABEL[row.stops] || `${row.stops}経由`;
+    const chartFlag =
+      row.chart_confidence && row.chart_confidence !== "high"
+        ? `<span class="confidence-flag" title="公表チャートの改定が多く、実際の数値は要確認です">要確認</span>`
+        : "";
+
+    const allianceColor = ALLIANCE_COLOR[row.alliance] || ALLIANCE_COLOR.none;
+    const allianceLabel = ALLIANCE_LABEL[row.alliance] || row.alliance;
+
+    const airlineCode = row.operating_airline_code || "";
+    const monogramColor = AIRLINE_COLOR[airlineCode] || "#8e8e93";
+    const monogramText = airlineCode || "?";
+
+    let stopsClass = "unknown";
+    let stopsLabel = "経路データ準備中";
+    if (row.stops === 0) { stopsClass = "direct"; stopsLabel = "直行"; }
+    else if (row.stops != null) { stopsClass = "transit"; stopsLabel = STOPS_LABEL[row.stops] || `${row.stops}経由`; }
     const viaText = row.via_ja ? `（${row.via_ja}経由）` : "";
 
     const airlineText = row.operating_airline_ja
-      ? `${row.operating_airline_ja}`
-      : `${ALLIANCE_LABEL[row.alliance] || row.alliance}系（詳細未整備）`;
+      ? `<strong>${row.operating_airline_ja}</strong>運航`
+      : `${allianceLabel}系パートナー運航（詳細未整備）`;
 
-    let infantText = "-";
-    if (document.getElementById("infant-check").checked) {
-      if (row.infant_rule === "no_miles_required") infantText = "マイル不要";
+    const conversions = row.card_conversions || [];
+    const chipsHtml = conversions.length
+      ? conversions
+          .map((c) => {
+            const cssClass = c.card_code.toLowerCase();
+            const text = c.points_high != null
+              ? `${c.points_low.toLocaleString()}〜${c.points_high.toLocaleString()}pt`
+              : `${c.points_low.toLocaleString()}pt`;
+            const flag = c.confidence && c.confidence !== "high"
+              ? `<span class="confidence-flag" title="${c.notes_ja || ""}">要確認</span>`
+              : "";
+            const label = CARD_SHORT_LABEL[c.card_code] || c.card_name_ja;
+            return `<span class="card-chip ${cssClass}"><span class="chip-icon">${CARD_ICON[c.card_code] || "$"}</span>${label} ${text}</span>${flag}`;
+          })
+          .join("")
+      : `<span class="card-chip unavailable">対応カードなし</span>`;
+
+    let infantHtml = "";
+    if (infantChecked) {
+      let infantText = "要確認";
+      if (row.infant_rule === "no_miles_required") infantText = "マイル不要（現金の諸税等のみ）";
       else if (row.infant_rule === "reduced_percentage")
-        infantText = `大人の${Math.round((row.infant_extra_miles / row.miles_low) * 100)}%(${row.infant_extra_miles?.toLocaleString()}マイル)`;
-      else if (row.infant_rule === "full_adult_miles_required") infantText = "大人と同額必要";
+        infantText = `大人の${Math.round((row.infant_extra_miles / row.miles_low) * 100)}%（${row.infant_extra_miles?.toLocaleString()}マイル）`;
+      else if (row.infant_rule === "full_adult_miles_required") infantText = "大人と同額のマイルが必要";
       else if (row.infant_rule === "child_fare_required") infantText = "現金の幼児運賃が別途必要";
-      else infantText = "要確認";
-      if (row.infant_notes_ja) infantText += ` <span class="confidence-flag" title="${row.infant_notes_ja}">詳細</span>`;
+      else if (row.infant_rule === "varies") infantText = "路線・条件により変動（現金ベース）";
+      const flag = row.infant_notes_ja
+        ? `<span class="confidence-flag" title="${row.infant_notes_ja}">詳細</span>`
+        : "";
+      infantHtml = `<div class="rc-infant">👶 <span><strong>2歳未満特典:</strong> ${infantText} ${flag}</span></div>`;
     }
 
-    const chartFlag =
-      row.chart_confidence && row.chart_confidence !== "high"
-        ? `<span class="confidence-flag">要確認</span>`
-        : "";
-
-    const cardCells = cardColumns
-      .map((code) => {
-        const c = (row.card_conversions || []).find((cc) => cc.card_code === code);
-        if (!c || c.points_low == null) return `<td data-label="${cardNameByCode[code] || code}換算">対象外</td>`;
-        const text = c.points_high != null
-          ? `${c.points_low.toLocaleString()}〜${c.points_high.toLocaleString()}pt`
-          : `${c.points_low.toLocaleString()}pt`;
-        const flag = c.confidence && c.confidence !== "high" ? ` <span class="confidence-flag" title="${c.notes_ja || ""}">要確認</span>` : "";
-        return `<td data-label="${cardNameByCode[code] || code}換算">${text}${flag}</td>`;
-      })
-      .join("");
-
-    tr.innerHTML = `
-      <td data-label="順位"><span class="rank-badge">${i + 1}</span></td>
-      <td data-label="マイルプログラム">${row.program_name_ja}</td>
-      <td data-label="実際に乗る航空会社">${airlineText}</td>
-      <td data-label="直行/経由">${stopsText}${viaText}</td>
-      <td data-label="必要マイル(片道)" class="miles-cell">${milesText}マイル ${chartFlag}</td>
-      ${cardCells}
-      <td data-label="幼児(2歳未満)特典">${infantText}</td>
+    card.innerHTML = `
+      <div class="rc-top">
+        <span class="rc-rank">${i + 1}</span>
+        <span class="rc-program-name">${row.program_name_ja}</span>
+        <span class="alliance-badge" style="background:${allianceColor}">${allianceLabel}</span>
+      </div>
+      <div class="rc-flight-row">
+        <span class="airline-monogram" style="background:${monogramColor}">${monogramText}</span>
+        <span class="rc-flight-text">${airlineText}<span class="stops-pill ${stopsClass}">${stopsLabel}${viaText}</span></span>
+      </div>
+      <div class="rc-miles-row">
+        <span class="rc-miles-value">${milesText}</span>
+        <span class="rc-miles-unit">マイル（片道）</span>
+        ${chartFlag}
+      </div>
+      <div class="card-chips">${chipsHtml}</div>
+      ${infantHtml}
     `;
-    tbody.appendChild(tr);
+    container.appendChild(card);
   });
-
-  container.appendChild(table);
 }

@@ -1,4 +1,5 @@
 -- スキーマ変更時に毎回クリーンな状態から作り直す(参照データのみのため破壊的変更でも問題なし)
+DROP TABLE IF EXISTS season_calendars;
 DROP TABLE IF EXISTS card_transfer_rates;
 DROP TABLE IF EXISTS credit_cards;
 DROP TABLE IF EXISTS dynamic_ranges;
@@ -55,10 +56,23 @@ CREATE TABLE IF NOT EXISTS region_pairs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   program_code TEXT NOT NULL REFERENCES programs(code),
   to_region TEXT NOT NULL, -- 日本発なので from は常にJapan
+  season TEXT NOT NULL DEFAULT 'regular', -- low/regular/high（季節性のないプログラムはregularのみ）
   economy INTEGER,
   premium_economy INTEGER,
   business INTEGER,
   first INTEGER
+);
+
+-- 季節カレンダー（ANAなど季節によりマイル数が変わるプログラム用。年をまたいで繰り返す月日レンジ）
+CREATE TABLE IF NOT EXISTS season_calendars (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  program_code TEXT NOT NULL REFERENCES programs(code),
+  season TEXT NOT NULL, -- low/regular/high
+  start_month INTEGER NOT NULL,
+  start_day INTEGER NOT NULL,
+  end_month INTEGER NOT NULL,
+  end_day INTEGER NOT NULL,
+  note_ja TEXT
 );
 
 -- ダイナミックプライシング系プログラムの典型レンジ（UA/DLなど。片道の目安レンジ）

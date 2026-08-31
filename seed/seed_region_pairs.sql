@@ -1,15 +1,39 @@
 DELETE FROM region_pairs;
 
--- ANA(ゾーン制、日本発、片道・レギュラーシーズン目安)
-INSERT INTO region_pairs (program_code,to_region,economy,premium_economy,business,first) VALUES
-('ANA','Northeast Asia',6000,NULL,10000,NULL),
-('ANA','Southeast Asia',12500,17500,30000,NULL),
-('ANA','South Asia',15000,20000,35000,NULL),
-('ANA','Hawaii',17500,22500,40000,NULL),
-('ANA','Oceania',20000,25000,45000,NULL),
-('ANA','North America',20000,27500,50000,75000),
-('ANA','Europe',22500,30000,55000,88000),
-('ANA','Middle East',20000,25000,45000,NULL);
+-- ANA(ゾーン制、日本発、片道。ロー/レギュラー/ハイシーズンで3段階、検索日付に応じて自動選択)
+-- 北米はANA公式チャートの往復実数を片道換算(高確度)、その他7地域はゾーン構造からの比例推定(中確度、要確認)
+INSERT INTO region_pairs (program_code,to_region,season,economy,premium_economy,business,first) VALUES
+('ANA','Northeast Asia','low',6000,NULL,9000,NULL),
+('ANA','Northeast Asia','regular',7500,NULL,10500,NULL),
+('ANA','Northeast Asia','high',9000,NULL,15000,NULL),
+
+('ANA','Southeast Asia','low',10000,13500,20000,NULL),
+('ANA','Southeast Asia','regular',12000,15500,22500,NULL),
+('ANA','Southeast Asia','high',16000,20500,30000,NULL),
+
+('ANA','South Asia','low',11500,15000,22500,NULL),
+('ANA','South Asia','regular',13500,17500,25000,NULL),
+('ANA','South Asia','high',17500,22500,33000,NULL),
+
+('ANA','Hawaii','low',17500,27500,42500,NULL),
+('ANA','Hawaii','regular',20000,30000,47500,NULL),
+('ANA','Hawaii','high',27000,37500,65000,NULL),
+
+('ANA','Oceania','low',17500,27500,42500,NULL),
+('ANA','Oceania','regular',20000,30000,47500,NULL),
+('ANA','Oceania','high',27000,37500,65000,NULL),
+
+('ANA','North America','low',20000,31000,50000,75000),
+('ANA','North America','regular',25000,36000,52500,85000),
+('ANA','North America','high',36000,51500,82500,150000),
+
+('ANA','Europe','low',22500,32500,55000,82500),
+('ANA','Europe','regular',27500,38000,60000,92500),
+('ANA','Europe','high',37500,52500,90000,155000),
+
+('ANA','Middle East','low',20000,30000,50000,NULL),
+('ANA','Middle East','regular',24000,34000,55000,NULL),
+('ANA','Middle East','high',32000,45000,75000,NULL);
 
 -- アラスカ航空マイレージプラン(提携社別チャートの日本関連区間のみ)
 INSERT INTO region_pairs (program_code,to_region,economy,premium_economy,business,first) VALUES

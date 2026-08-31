@@ -3,55 +3,63 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>マイルコンパス - 海外・国内旅行のマイル早見比較</title>
+<title>マイルコンパス — 航空マイル早見比較</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header class="site-header">
-  <h1>マイルコンパス</h1>
-  <p class="tagline">どの航空会社のマイルで予約すればお得か、日付なしでもすぐ比較。Marriott Bonvoyポイント換算つき。</p>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">✦ Step 1 — 目安比較</div>
+    <h1>マイルコンパス</h1>
+    <p class="tagline">どの航空会社のマイルで予約すればお得か、ひと目で比較。<br class="br-desktop">Marriott Bonvoy・Amex GPポイント換算つき。</p>
+  </div>
 </header>
 
 <main>
-  <form id="search-form" class="search-form">
-    <div class="field">
-      <label for="depart-date">いつ（目安・任意）</label>
-      <input type="date" id="depart-date" name="date">
+  <form id="search-form" class="search-card">
+    <div class="search-grid">
+      <div class="field">
+        <label for="depart-date"><span class="field-icon">📅</span>いつ（目安・任意）</label>
+        <input type="date" id="depart-date" name="date">
+      </div>
+
+      <div class="field autocomplete">
+        <label for="origin-input"><span class="field-icon">🛫</span>どこから</label>
+        <input type="text" id="origin-input" placeholder="例: はねだ / 羽田 / HND" autocomplete="off" required>
+        <input type="hidden" id="origin-iata">
+        <ul id="origin-suggestions" class="suggestions"></ul>
+      </div>
+
+      <div class="field autocomplete">
+        <label for="dest-input"><span class="field-icon">🛬</span>どこに</label>
+        <input type="text" id="dest-input" placeholder="例: たい / バンコク / BKK" autocomplete="off" required>
+        <input type="hidden" id="dest-iata">
+        <ul id="dest-suggestions" class="suggestions"></ul>
+      </div>
+
+      <div class="field">
+        <label for="stops-select"><span class="field-icon">✈️</span>経由</label>
+        <select id="stops-select">
+          <option value="any">指定なし</option>
+          <option value="nonstop">ノンストップのみ</option>
+          <option value="onestop">ワンストップ以内</option>
+        </select>
+      </div>
     </div>
 
-    <div class="field autocomplete">
-      <label for="origin-input">どこから</label>
-      <input type="text" id="origin-input" placeholder="例: はねだ / 羽田 / HND" autocomplete="off" required>
-      <input type="hidden" id="origin-iata">
-      <ul id="origin-suggestions" class="suggestions"></ul>
+    <div class="search-footer">
+      <label class="checkbox-field">
+        <input type="checkbox" id="infant-check">
+        <span>2歳未満の子連れ（幼児特典マイルも表示）</span>
+      </label>
+      <button type="submit">マイルを比較する</button>
     </div>
-
-    <div class="field autocomplete">
-      <label for="dest-input">どこに</label>
-      <input type="text" id="dest-input" placeholder="例: たい / バンコク / BKK" autocomplete="off" required>
-      <input type="hidden" id="dest-iata">
-      <ul id="dest-suggestions" class="suggestions"></ul>
-    </div>
-
-    <div class="field">
-      <label for="stops-select">経由</label>
-      <select id="stops-select">
-        <option value="any">指定なし</option>
-        <option value="nonstop">ノンストップのみ</option>
-        <option value="onestop">ワンストップ以内</option>
-      </select>
-    </div>
-
-    <div class="field checkbox-field">
-      <label><input type="checkbox" id="infant-check"> 2歳未満の子連れ（幼児特典マイルも表示）</label>
-    </div>
-
-    <button type="submit">マイルを比較する</button>
   </form>
 
   <p id="search-error" class="error hidden"></p>
 
-  <section id="result-summary" class="hidden"></section>
+  <section id="result-summary" class="result-summary hidden"></section>
 
   <nav id="cabin-tabs" class="cabin-tabs hidden">
     <button data-cabin="economy" class="tab active">エコノミー</button>
@@ -60,10 +68,10 @@
     <button data-cabin="first" class="tab">ファースト</button>
   </nav>
 
-  <div id="results"></div>
+  <div id="results" class="results-list"></div>
 
   <p class="disclaimer">
-    ※本サイトはStep1（席の空き状況を問わない目安比較）です。表示されるマイル数・提携条件・幼児特典ルールは各プログラムの公表資料や信頼できる二次情報源をもとにした概算・目安であり、予告なく変更される場合があります。実際の予約前には必ず各航空会社・Marriott Bonvoy公式サイトで最新情報をご確認ください。
+    本サイトはStep1（席の空き状況を問わない目安比較）です。表示されるマイル数・提携条件・幼児特典ルールは各プログラムの公表資料や信頼できる二次情報源をもとにした概算・目安であり、予告なく変更される場合があります。実際の予約前には必ず各航空会社・カード会社公式サイトで最新情報をご確認ください。ANA国際線特典は検索日の季節（ロー/レギュラー/ハイシーズン）を反映していますが、それ以外のプログラムは通年の目安値です。
   </p>
 </main>
 

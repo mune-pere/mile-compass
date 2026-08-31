@@ -45,6 +45,7 @@ async function handleSearch(url, env) {
   const dest = (url.searchParams.get("dest") || "").toUpperCase();
   const stopsFilter = url.searchParams.get("stops") || "any"; // nonstop | onestop | any
   const withInfant = url.searchParams.get("infant") === "1";
+  const dateParam = url.searchParams.get("date"); // YYYY-MM-DD (任意)
 
   if (!origin || !dest) {
     return new Response("出発地と到着地を指定してください", { status: 400 });
@@ -68,11 +69,11 @@ async function handleSearch(url, env) {
   const PROGRAM_FIELDS = `p.name_ja, p.name_en, p.alliance, p.can_book_jal, p.can_book_ana,
               p.infant_rule, p.infant_pct, p.infant_notes_ja, p.infant_confidence, p.chart_confidence, p.notes_ja`;
 
-  const [regionRows, dynamicRows, distanceBandRows, flightRows, cardRateRows] = await Promise.all([
+  const [regionRows, dynamicRows, distanceBandRows, flightRows, cardRateRows, seasonCalendarRows] = await Promise.all([
     env.DB.prepare(
       `SELECT rp.*, ${PROGRAM_FIELDS}
        FROM region_pairs rp JOIN programs p ON p.code = rp.program_code
-       WHERE rp.to_region = ?`
+       WHERE rp.to_region = ? AND rp.season = 'regular'`
     )
       .bind(region)
       .all(),
@@ -99,7 +100,48 @@ async function handleSearch(url, env) {
       `SELECT ctr.*, cc.name_ja AS card_name_ja, cc.points_name_ja
        FROM card_transfer_rates ctr JOIN credit_cards cc ON cc.code = ctr.card_code`
     ).all(),
+    env.DB.prepare(`SELECT * FROM season_calendars`).all(),
   ]);
+
+  // 検索日付が指定されている場合、季節カレンダーを持つプログラム(現状ANAのみ)の該当シーズンを解決し、
+  // regularシーズンの行を置き換える
+  let seasonNoteJa = null;
+  if (dateParam) {
+    const d = new Date(dateParam + "T00:00:00Z");
+    if (!isNaN(d.getTime())) {
+      const month = d.getUTCMonth() + 1;
+      const day = d.getUTCDate();
+      const byProgram = new Map();
+      for (const c of seasonCalendarRows.results) {
+        if (!byProgram.has(c.program_code)) byProgram.set(c.program_code, []);
+        byProgram.get(c.program_code).push(c);
+      }
+
+      for (const [programCode, calendarRows] of byProgram) {
+        const match = calendarRows.find((c) => {
+          const key = month * 100 + day;
+          return key >= c.start_month * 100 + c.start_day && key <= c.end_month * 100 + c.end_day;
+        });
+        const resolvedSeason = match ? match.season : "regular";
+        if (resolvedSeason !== "regular") {
+          const seasonalRows = await env.DB.prepare(
+            `SELECT rp.*, ${PROGRAM_FIELDS}
+             FROM region_pairs rp JOIN programs p ON p.code = rp.program_code
+             WHERE rp.to_region = ? AND rp.program_code = ? AND rp.season = ?`
+          )
+            .bind(region, programCode, resolvedSeason)
+            .all();
+          if (seasonalRows.results.length > 0) {
+            regionRows.results = regionRows.results.filter((r) => r.program_code !== programCode);
+            regionRows.results.push(...seasonalRows.results);
+            const seasonLabelJa = { low: "ローシーズン", high: "ハイシーズン" }[resolvedSeason] || resolvedSeason;
+            const programNameJa = seasonalRows.results[0].name_ja;
+            seasonNoteJa = `${programNameJa}: ${seasonLabelJa}料金を表示中`;
+          }
+        }
+      }
+    }
+  }
 
   const cardRatesByProgram = new Map();
   for (const r of cardRateRows.results) {
@@ -177,6 +219,7 @@ async function handleSearch(url, env) {
     destination: destAirport,
     distance_miles: distanceMiles,
     region,
+    season_note_ja: seasonNoteJa,
     cabins: cabinResults,
   });
 }
@@ -225,6 +268,7 @@ function addRowsForProgram(cabinResults, row, flight, opts) {
       program_name_ja: row.name_ja,
       alliance: row.alliance,
       operating_airline_ja: flight ? flight.operating_airline_ja : null,
+      operating_airline_code: flight ? flight.operating_airline_code : null,
       stops,
       via_ja: flight ? flight.via_ja : null,
       is_dynamic: isDynamic,
