@@ -93,3 +93,44 @@ INSERT INTO flights (origin_iata,dest_iata,operating_airline_code,operating_airl
 -- 主要な経由便の例（直行がない/少ない組み合わせの代表例）
 ('HND','CDG','BA','ブリティッシュ・エアウェイズ','oneworld',1,'ロンドン(LHR)','JAL/AF以外のoneworld提携での代表的な経由例'),
 ('HND','DXB','QR','カタール航空','oneworld',1,'ドーハ(DOH)','ドバイへの提携マイル利用時の代表的な経由例');
+
+-- ===== 国内線ネットワーク(ANA/JALのみ。就航状況は季節等により変動するため参考情報) =====
+INSERT INTO flights (origin_iata,dest_iata,operating_airline_code,operating_airline_ja,alliance,stops,via_ja,notes_ja) VALUES
+('HND','CTS','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','CTS','NH','全日空(ANA)','star',0,NULL,NULL),
+('HND','ITM','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','ITM','NH','全日空(ANA)','star',0,NULL,NULL),
+('HND','FUK','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','FUK','NH','全日空(ANA)','star',0,NULL,NULL),
+('HND','OKA','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','OKA','NH','全日空(ANA)','star',0,NULL,NULL),
+('HND','MMY','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','MMY','NH','全日空(ANA)','star',0,NULL,NULL),
+('HND','ISG','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','ISG','NH','全日空(ANA)','star',0,NULL,NULL),
+
+('ITM','CTS','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('ITM','CTS','NH','全日空(ANA)','star',0,NULL,NULL),
+('ITM','OKA','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('ITM','OKA','NH','全日空(ANA)','star',0,NULL,NULL),
+
+('FUK','OKA','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('FUK','OKA','NH','全日空(ANA)','star',0,NULL,NULL),
+('FUK','CTS','JL','日本航空(JAL)','oneworld',0,NULL,'季節により減便の場合あり'),
+
+('OKA','CTS','JL','日本航空(JAL)','oneworld',0,NULL,'季節限定便の場合あり(主に冬季)'),
+('OKA','CTS','NH','全日空(ANA)','star',0,NULL,'季節限定便の場合あり(主に冬季)'),
+('OKA','MMY','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('OKA','MMY','NH','全日空(ANA)','star',0,NULL,NULL),
+('OKA','ISG','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('OKA','ISG','NH','全日空(ANA)','star',0,NULL,NULL),
+
+-- 宮古島・石垣から札幌など那覇乗継が前提の代表的な経由例
+('MMY','CTS','JL','日本航空(JAL)','oneworld',1,'那覇(OKA)','宮古島-札幌の直行便はなく那覇乗継が前提'),
+('MMY','CTS','NH','全日空(ANA)','star',1,'那覇(OKA)','宮古島-札幌の直行便はなく那覇乗継が前提'),
+('ISG','CTS','JL','日本航空(JAL)','oneworld',1,'那覇(OKA)','石垣-札幌の直行便はなく那覇乗継が前提'),
+('ISG','CTS','NH','全日空(ANA)','star',1,'那覇(OKA)','石垣-札幌の直行便はなく那覇乗継が前提'),
+('MMY','HND','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('MMY','HND','NH','全日空(ANA)','star',0,NULL,NULL),
+('ISG','HND','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('ISG','HND','NH','全日空(ANA)','star',0,NULL,NULL);

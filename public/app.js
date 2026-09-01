@@ -118,9 +118,29 @@ document.getElementById("search-form").addEventListener("submit", async (e) => {
   }
   lastData = await res.json();
   renderSummary(lastData);
+  updateTabsForMode(lastData.is_domestic);
   document.getElementById("cabin-tabs").classList.remove("hidden");
+  if (lastData.is_domestic && !["economy", "premium_economy"].includes(activeCabin)) {
+    activeCabin = "economy";
+  }
+  document.querySelectorAll(".cabin-tabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.cabin === activeCabin));
   renderCabin(activeCabin);
 });
+
+function updateTabsForMode(isDomestic) {
+  const premiumTab = document.querySelector('.tab[data-cabin="premium_economy"]');
+  const businessTab = document.querySelector('.tab[data-cabin="business"]');
+  const firstTab = document.querySelector('.tab[data-cabin="first"]');
+  if (isDomestic) {
+    premiumTab.textContent = "プレミアムクラス/クラスJ";
+    businessTab.classList.add("hidden");
+    firstTab.classList.add("hidden");
+  } else {
+    premiumTab.textContent = "プレミアムエコノミー";
+    businessTab.classList.remove("hidden");
+    firstTab.classList.remove("hidden");
+  }
+}
 
 document.getElementById("cabin-tabs").addEventListener("click", (e) => {
   const btn = e.target.closest(".tab");
@@ -146,9 +166,22 @@ function renderCabin(cabin) {
   container.innerHTML = "";
   if (!lastData) return;
 
+  const isDomestic = !!lastData.is_domestic;
+
+  if (isDomestic && cabin === "premium_economy" && lastData.domestic_premium_note_ja) {
+    const note = document.createElement("p");
+    note.className = "domestic-note";
+    note.textContent = lastData.domestic_premium_note_ja;
+    container.appendChild(note);
+  }
+
   const rows = lastData.cabins[cabin] || [];
   if (rows.length === 0) {
-    container.innerHTML = `<div class="empty-state">${CABIN_LABEL[cabin]}クラスで比較できるデータが現在ありません。</div>`;
+    const label = isDomestic && cabin === "premium_economy" ? "プレミアムクラス/クラスJ" : CABIN_LABEL[cabin];
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = `${label}で比較できるデータが現在ありません。`;
+    container.appendChild(empty);
     return;
   }
 
@@ -203,37 +236,44 @@ function renderCabin(cabin) {
 
     let infantRow = "";
     if (infantChecked) {
-      let infantText = "要確認";
-      if (row.infant_rule === "no_miles_required") infantText = "マイル不要（現金の諸税等のみ）";
-      else if (row.infant_rule === "reduced_percentage")
-        infantText = `大人の${Math.round((row.infant_extra_miles / row.miles_low) * 100)}%（${row.infant_extra_miles?.toLocaleString()}マイル）`;
-      else if (row.infant_rule === "full_adult_miles_required") infantText = "大人と同額のマイルが必要";
-      else if (row.infant_rule === "child_fare_required") infantText = "現金の幼児運賃が別途必要";
-      else if (row.infant_rule === "varies") infantText = "路線・条件により変動（現金ベース）";
-      const flag = row.infant_notes_ja
-        ? `<span class="confidence-flag" title="${row.infant_notes_ja}">詳細</span>`
-        : "";
-      infantRow = `<div class="rc-meta-row">👶 <span><strong>2歳未満特典:</strong> ${infantText} ${flag}</span></div>`;
+      if (isDomestic) {
+        infantRow = `<div class="rc-meta-row">👶 <span>${lastData.domestic_infant_note_ja || "国内線の幼児・小児特典は要確認です。"}</span></div>`;
+      } else {
+        let infantText = "要確認";
+        if (row.infant_rule === "no_miles_required") infantText = "マイル不要（現金の諸税等のみ）";
+        else if (row.infant_rule === "reduced_percentage")
+          infantText = `大人の${Math.round((row.infant_extra_miles / row.miles_low) * 100)}%（${row.infant_extra_miles?.toLocaleString()}マイル）`;
+        else if (row.infant_rule === "full_adult_miles_required") infantText = "大人と同額のマイルが必要";
+        else if (row.infant_rule === "child_fare_required") infantText = "現金の幼児運賃が別途必要";
+        else if (row.infant_rule === "varies") infantText = "路線・条件により変動（現金ベース）";
+        const flag = row.infant_notes_ja
+          ? `<span class="confidence-flag" title="${row.infant_notes_ja}">詳細</span>`
+          : "";
+        infantRow = `<div class="rc-meta-row">👶 <span><strong>2歳未満特典:</strong> ${infantText} ${flag}</span></div>`;
+      }
     }
 
-    const yq = YQ_BADGE[row.yq_status];
-    const yqBadgeHtml = yq ? `<span class="yq-badge ${yq.cls}">${yq.label}</span>` : "";
-    const feeText =
-      row.cash_fee_low_yen != null
-        ? `¥${row.cash_fee_low_yen.toLocaleString()}〜¥${row.cash_fee_high_yen.toLocaleString()}（片道）`
-        : "金額は要確認（予約時にご案内）";
-    const feeConfidenceFlag =
-      row.cash_fee_confidence && row.cash_fee_confidence !== "high"
-        ? `<span class="confidence-flag" title="${row.cash_fee_notes_ja || ""}">要確認</span>`
-        : "";
-    const surchargeTitle = row.surcharge_notes_ja ? ` title="${row.surcharge_notes_ja}"` : "";
-    const feesRow = `<div class="rc-meta-row"${surchargeTitle}>💴 <span><strong>諸税・燃油サーチャージ目安:</strong> ${feeText} ${feeConfidenceFlag}</span>${yqBadgeHtml}</div>`;
+    let feesRow = "";
+    if (!isDomestic) {
+      const yq = YQ_BADGE[row.yq_status];
+      const yqBadgeHtml = yq ? `<span class="yq-badge ${yq.cls}">${yq.label}</span>` : "";
+      const feeText =
+        row.cash_fee_low_yen != null
+          ? `¥${row.cash_fee_low_yen.toLocaleString()}〜¥${row.cash_fee_high_yen.toLocaleString()}（片道）`
+          : "金額は要確認（予約時にご案内）";
+      const feeConfidenceFlag =
+        row.cash_fee_confidence && row.cash_fee_confidence !== "high"
+          ? `<span class="confidence-flag" title="${row.cash_fee_notes_ja || ""}">要確認</span>`
+          : "";
+      const surchargeTitle = row.surcharge_notes_ja ? ` title="${row.surcharge_notes_ja}"` : "";
+      feesRow = `<div class="rc-meta-row"${surchargeTitle}>💴 <span><strong>諸税・燃油サーチャージ目安:</strong> ${feeText} ${feeConfidenceFlag}</span>${yqBadgeHtml}</div>`;
+    }
 
     card.innerHTML = `
       <div class="rc-top">
         <span class="rc-rank">${i + 1}</span>
         <span class="rc-program-name">${row.program_name_ja}</span>
-        <span class="alliance-badge" style="background:${allianceColor}">${allianceLabel}</span>
+        ${isDomestic ? "" : `<span class="alliance-badge" style="background:${allianceColor}">${allianceLabel}</span>`}
       </div>
       <div class="rc-flight-row">
         <span class="airline-monogram" style="background:${monogramColor}">${monogramText}</span>
@@ -245,10 +285,7 @@ function renderCabin(cabin) {
         ${chartFlag}
       </div>
       <div class="card-chips">${chipsHtml}</div>
-      <div class="rc-meta">
-        ${feesRow}
-        ${infantRow}
-      </div>
+      ${feesRow || infantRow ? `<div class="rc-meta">${feesRow}${infantRow}</div>` : ""}
     `;
     container.appendChild(card);
   });

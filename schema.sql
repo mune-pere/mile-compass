@@ -1,4 +1,6 @@
 -- スキーマ変更時に毎回クリーンな状態から作り直す(参照データのみのため破壊的変更でも問題なし)
+DROP TABLE IF EXISTS domestic_routes;
+DROP TABLE IF EXISTS domestic_bands;
 DROP TABLE IF EXISTS cash_fees;
 DROP TABLE IF EXISTS season_calendars;
 DROP TABLE IF EXISTS card_transfer_rates;
@@ -120,6 +122,30 @@ CREATE TABLE IF NOT EXISTS cash_fees (
   premium_economy_low_yen INTEGER, premium_economy_high_yen INTEGER,
   business_low_yen INTEGER, business_high_yen INTEGER,
   first_low_yen INTEGER, first_high_yen INTEGER,
+  notes_ja TEXT,
+  confidence TEXT -- high/medium/low
+);
+
+-- 国内線特典マイル(ANA/JALのみ。距離帯フォールバック用)
+CREATE TABLE IF NOT EXISTS domestic_bands (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  program_code TEXT NOT NULL REFERENCES programs(code),
+  max_distance_miles INTEGER NOT NULL,
+  season TEXT NOT NULL DEFAULT 'regular', -- low/regular/high(ANAは季節変動あり、JALは固定でregularのみ)
+  economy INTEGER,
+  premium INTEGER, -- ANAプレミアムクラス/JALクラスJ等の国内プレミアム相当(片道マイル)
+  notes_ja TEXT,
+  confidence TEXT -- high/medium/low
+);
+
+-- 国内線特典マイル(具体的な区間ごとの実際の公表値。存在する場合はdomestic_bandsより優先)
+CREATE TABLE IF NOT EXISTS domestic_routes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  program_code TEXT NOT NULL REFERENCES programs(code),
+  origin_iata TEXT NOT NULL,
+  dest_iata TEXT NOT NULL,
+  economy INTEGER,
+  premium INTEGER,
   notes_ja TEXT,
   confidence TEXT -- high/medium/low
 );

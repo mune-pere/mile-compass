@@ -9,7 +9,9 @@ INSERT INTO airports (iata,name_ja,city_ja,country_ja,kana,region,lat,lon,is_jap
 ('NGO','中部国際空港(セントレア)','名古屋','日本','ちゅうぶ 中部 せんとれあ なごや 名古屋 centrair nagoya ngo', 'Japan',34.8584,136.8054,1),
 ('FUK','福岡空港','福岡','日本','ふくおか 福岡 fukuoka fuk',                                    'Japan',33.5859,130.4506,1),
 ('CTS','新千歳空港','札幌','日本','ちとせ 千歳 しんちとせ 新千歳 さっぽろ 札幌 sapporo chitose cts', 'Japan',42.7752,141.6923,1),
-('OKA','那覇空港','那覇','日本','なは 那覇 おきなわ 沖縄 naha okinawa oka',                       'Japan',26.1958,127.6459,1);
+('OKA','那覇空港','那覇','日本','なは 那覇 おきなわ 沖縄 naha okinawa oka',                       'Japan',26.1958,127.6459,1),
+('MMY','宮古空港','宮古島','日本','みやこじま 宮古島 みやこ 宮古 mmy miyako miyakojima',              'Japan',24.7828,125.2951,1),
+('ISG','南ぬ島石垣空港','石垣島','日本','いしがき 石垣 いしがきじま 石垣島 isg ishigaki',                'Japan',24.3964,124.2450,1);
 
 -- 目的地候補
 INSERT INTO airports (iata,name_ja,city_ja,country_ja,kana,region,lat,lon,is_japan) VALUES

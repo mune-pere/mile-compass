@@ -43,17 +43,22 @@ export default {
 
 async function handleAirportSearch(url, env) {
   const q = (url.searchParams.get("q") || "").trim().toLowerCase();
-  const type = url.searchParams.get("type") === "origin" ? 1 : 0; // 1=japan origin, 0=destination
+  const isOrigin = url.searchParams.get("type") === "origin";
   if (!q) return Response.json([]);
 
-  const { results } = await env.DB.prepare(
-    `SELECT iata, name_ja, city_ja, country_ja, region FROM airports
-     WHERE is_japan = ? AND (
-       lower(kana) LIKE ? OR lower(iata) = ? OR lower(name_ja) LIKE ? OR lower(city_ja) LIKE ?
-     )
-     ORDER BY iata LIMIT 8`
-  )
-    .bind(type, `%${q}%`, q, `%${q}%`, `%${q}%`)
+  // 出発地は日本の空港のみ。到着地は海外+国内(国内線検索用)の両方を候補に出す。
+  const sql = isOrigin
+    ? `SELECT iata, name_ja, city_ja, country_ja, region, is_japan FROM airports
+       WHERE is_japan = 1 AND (
+         lower(kana) LIKE ? OR lower(iata) = ? OR lower(name_ja) LIKE ? OR lower(city_ja) LIKE ?
+       )
+       ORDER BY iata LIMIT 8`
+    : `SELECT iata, name_ja, city_ja, country_ja, region, is_japan FROM airports
+       WHERE lower(kana) LIKE ? OR lower(iata) = ? OR lower(name_ja) LIKE ? OR lower(city_ja) LIKE ?
+       ORDER BY is_japan ASC, iata LIMIT 8`;
+
+  const { results } = await env.DB.prepare(sql)
+    .bind(`%${q}%`, q, `%${q}%`, `%${q}%`)
     .all();
 
   return Response.json(results);
@@ -82,6 +87,10 @@ async function handleSearch(url, env) {
   const distanceMiles = Math.round(
     haversineMiles(originAirport.lat, originAirport.lon, destAirport.lat, destAirport.lon)
   );
+
+  if (destAirport.is_japan === 1) {
+    return handleDomesticSearch(env, originAirport, destAirport, distanceMiles, stopsFilter, withInfant, dateParam);
+  }
 
   const region = destAirport.region;
 
@@ -251,6 +260,175 @@ async function handleSearch(url, env) {
     season_note_ja: seasonNoteJa,
     cabins: cabinResults,
   });
+}
+
+async function handleDomesticSearch(env, originAirport, destAirport, distanceMiles, stopsFilter, withInfant, dateParam) {
+  const origin = originAirport.iata;
+  const dest = destAirport.iata;
+  const PROGRAM_FIELDS = `p.name_ja, p.alliance`;
+
+  const [bandRows, routeRows, flightRows, cardRateRows, seasonCalendarRows] = await Promise.all([
+    env.DB.prepare(
+      `SELECT db.*, ${PROGRAM_FIELDS} FROM domestic_bands db JOIN programs p ON p.code = db.program_code
+       WHERE db.season = 'regular'`
+    ).all(),
+    env.DB.prepare(
+      `SELECT dr.*, ${PROGRAM_FIELDS} FROM domestic_routes dr JOIN programs p ON p.code = dr.program_code
+       WHERE dr.origin_iata = ? AND dr.dest_iata = ?`
+    )
+      .bind(origin, dest)
+      .all(),
+    env.DB.prepare(
+      `SELECT * FROM flights WHERE (origin_iata = ? AND dest_iata = ?) OR (origin_iata = ? AND dest_iata = ?)`
+    )
+      .bind(origin, dest, dest, origin)
+      .all(),
+    env.DB.prepare(
+      `SELECT ctr.*, cc.name_ja AS card_name_ja, cc.points_name_ja
+       FROM card_transfer_rates ctr JOIN credit_cards cc ON cc.code = ctr.card_code
+       WHERE ctr.program_code IN ('ANA','JAL')`
+    ).all(),
+    env.DB.prepare(`SELECT * FROM season_calendars WHERE program_code = 'ANA'`).all(),
+  ]);
+
+  let anaSeason = "regular";
+  let seasonNoteJa = null;
+  if (dateParam) {
+    const d = new Date(dateParam + "T00:00:00Z");
+    if (!isNaN(d.getTime())) {
+      const key = (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+      const match = seasonCalendarRows.results.find(
+        (c) => key >= c.start_month * 100 + c.start_day && key <= c.end_month * 100 + c.end_day
+      );
+      if (match) anaSeason = match.season;
+    }
+  }
+
+  let anaBands = bandRows.results.filter((r) => r.program_code === "ANA");
+  if (anaSeason !== "regular") {
+    const seasonal = await env.DB.prepare(
+      `SELECT db.*, ${PROGRAM_FIELDS} FROM domestic_bands db JOIN programs p ON p.code = db.program_code
+       WHERE db.program_code = 'ANA' AND db.season = ?`
+    )
+      .bind(anaSeason)
+      .all();
+    if (seasonal.results.length > 0) {
+      anaBands = seasonal.results;
+      seasonNoteJa = `ANAマイレージクラブ: ${anaSeason === "low" ? "ローシーズン" : "ハイシーズン"}料金を表示中`;
+    }
+  }
+  const jalBands = bandRows.results.filter((r) => r.program_code === "JAL");
+  const allBands = [...anaBands, ...jalBands];
+
+  const flights = flightRows.results;
+  function bestFlightFor(operatingCode) {
+    const candidates = flights.filter((f) => f.operating_airline_code === operatingCode);
+    if (candidates.length === 0) return null;
+    candidates.sort((a, b) => a.stops - b.stops);
+    return candidates[0];
+  }
+
+  const cardRatesByProgram = new Map();
+  for (const r of cardRateRows.results) {
+    if (!cardRatesByProgram.has(r.program_code)) cardRatesByProgram.set(r.program_code, []);
+    cardRatesByProgram.get(r.program_code).push(r);
+  }
+
+  const routeOverrideByProgram = new Map();
+  for (const r of routeRows.results) routeOverrideByProgram.set(r.program_code, r);
+
+  const cabinResults = { economy: [], premium_economy: [], business: [], first: [] };
+
+  for (const programCode of ["ANA", "JAL"]) {
+    const row =
+      routeOverrideByProgram.get(programCode) ||
+      (() => {
+        const bands = allBands
+          .filter((b) => b.program_code === programCode)
+          .sort((a, b) => a.max_distance_miles - b.max_distance_miles);
+        return bands.find((b) => b.max_distance_miles >= distanceMiles) || bands[bands.length - 1];
+      })();
+    if (!row) continue;
+
+    const operatingCode = programCode === "ANA" ? "NH" : "JL";
+    const flight = bestFlightFor(operatingCode);
+    const stops = flight ? flight.stops : null;
+    if (stopsFilter === "nonstop" && stops !== 0) continue;
+    if (stopsFilter === "onestop" && !(stops === 0 || stops === 1)) continue;
+
+    const cardRates = cardRatesByProgram.get(programCode) || [];
+
+    if (row.economy != null) {
+      cabinResults.economy.push(
+        buildDomesticRow(programCode, row, "economy", flight, distanceMiles, cardRates, row.confidence)
+      );
+    }
+    if (row.premium != null) {
+      cabinResults.premium_economy.push(
+        buildDomesticRow(programCode, row, "premium", flight, distanceMiles, cardRates, row.confidence)
+      );
+    }
+  }
+
+  for (const cabin of CABINS) {
+    cabinResults[cabin].sort((a, b) => a.miles_sort - b.miles_sort);
+  }
+
+  return Response.json({
+    origin: originAirport,
+    destination: destAirport,
+    distance_miles: distanceMiles,
+    region: "Japan",
+    is_domestic: true,
+    season_note_ja: seasonNoteJa,
+    domestic_infant_note_ja:
+      "国内線特典航空券は小児(3〜11歳)も大人と同額のマイルが必要です(割引なし)。座席を使用しない乳幼児は運賃・マイルとも不要です。国内線に燃油サーチャージはかかりません。",
+    domestic_premium_note_ja:
+      "ANAは現状、国内線プレミアムクラスをマイル単体の特典航空券として新規予約することができません(普通席特典に現金で差額アップグレードする形が基本、2026年5月以降はマイルアップグレード制度も開始予定)。JALのクラスJ・ファーストクラスはマイルのみでの特典予約が可能です。",
+    cabins: cabinResults,
+  });
+}
+
+function buildDomesticRow(programCode, row, cabinKey, flight, distanceMiles, cardRates, confidence) {
+  const miles = row[cabinKey];
+  const cardConversions = (cardRates || []).map((cr) => ({
+    card_code: cr.card_code,
+    card_name_ja: cr.card_name_ja,
+    points_name_ja: cr.points_name_ja,
+    points_low: milesToCardPoints(miles, cr.ratio_points_per_mile, cr.bonus_block, cr.bonus_miles),
+    points_high: null,
+    notes_ja: cr.notes_ja,
+    confidence: cr.confidence,
+  }));
+
+  return {
+    program_code: programCode,
+    program_name_ja: row.name_ja,
+    alliance: row.alliance,
+    operating_airline_ja: flight ? flight.operating_airline_ja : programCode === "ANA" ? "全日空(ANA)" : "日本航空(JAL)",
+    operating_airline_code: flight ? flight.operating_airline_code : programCode === "ANA" ? "NH" : "JL",
+    stops: flight ? flight.stops : null,
+    via_ja: flight ? flight.via_ja : null,
+    is_dynamic: false,
+    miles_low: miles,
+    miles_high: null,
+    miles_sort: miles,
+    distance_miles: distanceMiles,
+    card_conversions: cardConversions,
+    infant_rule: null,
+    infant_notes_ja: null,
+    infant_confidence: null,
+    infant_extra_miles: null,
+    chart_confidence: confidence || "medium",
+    notes_ja: row.notes_ja,
+    cash_fee_low_yen: null,
+    cash_fee_high_yen: null,
+    cash_fee_confidence: null,
+    cash_fee_notes_ja: null,
+    is_own_metal: true,
+    yq_status: "no",
+    surcharge_notes_ja: null,
+  };
 }
 
 function addRowsForProgram(cabinResults, row, flight, opts) {
