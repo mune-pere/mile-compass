@@ -6,6 +6,25 @@ const CABIN_LABEL_JA = {
   first: "ファースト",
 };
 
+// マイルプログラムの「自社運航便」に該当する運航会社コード（燃油サーチャージの自社/提携判定に使用）
+const PROGRAM_HOME_AIRLINE_CODES = {
+  ANA: ["NH"],
+  JAL: ["JL"],
+  AS: ["AS"],
+  BA: ["BA"],
+  VS: ["VS"],
+  AFKL: ["AF", "KL"],
+  KE: ["KE"],
+  SQ: ["SQ"],
+  CX: ["CX"],
+  TK: ["TK"],
+  AA: ["AA"],
+  UA: ["UA"],
+  DL: ["DL"],
+  EY: ["EY"],
+  QR: ["QR"],
+};
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -67,9 +86,10 @@ async function handleSearch(url, env) {
   const region = destAirport.region;
 
   const PROGRAM_FIELDS = `p.name_ja, p.name_en, p.alliance, p.can_book_jal, p.can_book_ana,
-              p.infant_rule, p.infant_pct, p.infant_notes_ja, p.infant_confidence, p.chart_confidence, p.notes_ja`;
+              p.infant_rule, p.infant_pct, p.infant_notes_ja, p.infant_confidence, p.chart_confidence, p.notes_ja,
+              p.charges_yq_own_metal, p.charges_yq_partner, p.surcharge_notes_ja`;
 
-  const [regionRows, dynamicRows, distanceBandRows, flightRows, cardRateRows, seasonCalendarRows] = await Promise.all([
+  const [regionRows, dynamicRows, distanceBandRows, flightRows, cardRateRows, seasonCalendarRows, cashFeeRows] = await Promise.all([
     env.DB.prepare(
       `SELECT rp.*, ${PROGRAM_FIELDS}
        FROM region_pairs rp JOIN programs p ON p.code = rp.program_code
@@ -101,7 +121,13 @@ async function handleSearch(url, env) {
        FROM card_transfer_rates ctr JOIN credit_cards cc ON cc.code = ctr.card_code`
     ).all(),
     env.DB.prepare(`SELECT * FROM season_calendars`).all(),
+    env.DB.prepare(`SELECT * FROM cash_fees WHERE to_region = ?`).bind(region).all(),
   ]);
+
+  const cashFeeByProgram = new Map();
+  for (const f of cashFeeRows.results) {
+    cashFeeByProgram.set(f.program_code, f);
+  }
 
   // 検索日付が指定されている場合、季節カレンダーを持つプログラム(現状ANAのみ)の該当シーズンを解決し、
   // regularシーズンの行を置き換える
@@ -185,6 +211,7 @@ async function handleSearch(url, env) {
       withInfant,
       isDynamic: false,
       cardRates: cardRatesByProgram.get(row.program_code) || [],
+      cashFee: cashFeeByProgram.get(row.program_code) || null,
     });
   }
 
@@ -196,6 +223,7 @@ async function handleSearch(url, env) {
       withInfant,
       isDynamic: true,
       cardRates: cardRatesByProgram.get(row.program_code) || [],
+      cashFee: cashFeeByProgram.get(row.program_code) || null,
     });
   }
 
@@ -207,6 +235,7 @@ async function handleSearch(url, env) {
       withInfant,
       isDynamic: false,
       cardRates: cardRatesByProgram.get(row.program_code) || [],
+      cashFee: cashFeeByProgram.get(row.program_code) || null,
     });
   }
 
@@ -225,11 +254,15 @@ async function handleSearch(url, env) {
 }
 
 function addRowsForProgram(cabinResults, row, flight, opts) {
-  const { distanceMiles, stopsFilter, withInfant, isDynamic, cardRates } = opts;
+  const { distanceMiles, stopsFilter, withInfant, isDynamic, cardRates, cashFee } = opts;
   const stops = flight ? flight.stops : null;
 
   if (stopsFilter === "nonstop" && stops !== 0) return;
   if (stopsFilter === "onestop" && !(stops === 0 || stops === 1)) return;
+
+  const homeCodes = PROGRAM_HOME_AIRLINE_CODES[row.program_code] || [];
+  const isOwnMetal = flight ? homeCodes.includes(flight.operating_airline_code) : null;
+  const yqStatus = isOwnMetal == null ? row.charges_yq_partner : isOwnMetal ? row.charges_yq_own_metal : row.charges_yq_partner;
 
   for (const cabin of CABINS) {
     let milesLow, milesHigh;
@@ -263,6 +296,13 @@ function addRowsForProgram(cabinResults, row, flight, opts) {
       infantMiles = 0;
     }
 
+    let cashFeeLow = null;
+    let cashFeeHigh = null;
+    if (cashFee) {
+      cashFeeLow = cashFee[`${cabin}_low_yen`];
+      cashFeeHigh = cashFee[`${cabin}_high_yen`];
+    }
+
     cabinResults[cabin].push({
       program_code: row.program_code,
       program_name_ja: row.name_ja,
@@ -283,6 +323,13 @@ function addRowsForProgram(cabinResults, row, flight, opts) {
       infant_extra_miles: infantMiles,
       chart_confidence: row.chart_confidence,
       notes_ja: row.notes_ja,
+      cash_fee_low_yen: cashFeeLow ?? null,
+      cash_fee_high_yen: cashFeeHigh ?? null,
+      cash_fee_confidence: cashFee ? cashFee.confidence : null,
+      cash_fee_notes_ja: cashFee ? cashFee.notes_ja : null,
+      is_own_metal: isOwnMetal,
+      yq_status: yqStatus,
+      surcharge_notes_ja: row.surcharge_notes_ja,
     });
   }
 }

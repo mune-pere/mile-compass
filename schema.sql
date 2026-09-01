@@ -1,4 +1,5 @@
 -- スキーマ変更時に毎回クリーンな状態から作り直す(参照データのみのため破壊的変更でも問題なし)
+DROP TABLE IF EXISTS cash_fees;
 DROP TABLE IF EXISTS season_calendars;
 DROP TABLE IF EXISTS card_transfer_rates;
 DROP TABLE IF EXISTS credit_cards;
@@ -36,6 +37,9 @@ CREATE TABLE IF NOT EXISTS programs (
   infant_notes_ja TEXT,
   infant_confidence TEXT, -- high/medium/low
   chart_confidence TEXT, -- high/medium/low(マイルチャート数値自体の確度)
+  charges_yq_own_metal TEXT, -- yes/no/varies（自社運航便での燃油サーチャージ有無）
+  charges_yq_partner TEXT, -- yes/no/varies（提携航空会社運航便での燃油サーチャージ有無）
+  surcharge_notes_ja TEXT, -- 燃油サーチャージ回避テクニックなどの説明
   notes_ja TEXT,
   sources TEXT -- 参考url（改行区切り）
 );
@@ -103,6 +107,19 @@ CREATE TABLE IF NOT EXISTS card_transfer_rates (
   ratio_points_per_mile REAL NOT NULL, -- 例 3 = 3ポイントで1マイル、1 = 1ポイントで1マイル
   bonus_block INTEGER, -- ボーナス適用単位（例 60000ポイント単位）。なければNULL
   bonus_miles INTEGER, -- ボーナス単位ごとの追加マイル数。なければNULL
+  notes_ja TEXT,
+  confidence TEXT -- high/medium/low
+);
+
+-- 諸税・燃油サーチャージ込みの現金負担額目安（プログラム×地域×客室クラス、片道・円建て）
+CREATE TABLE IF NOT EXISTS cash_fees (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  program_code TEXT NOT NULL REFERENCES programs(code),
+  to_region TEXT NOT NULL,
+  economy_low_yen INTEGER, economy_high_yen INTEGER,
+  premium_economy_low_yen INTEGER, premium_economy_high_yen INTEGER,
+  business_low_yen INTEGER, business_high_yen INTEGER,
+  first_low_yen INTEGER, first_high_yen INTEGER,
   notes_ja TEXT,
   confidence TEXT -- high/medium/low
 );

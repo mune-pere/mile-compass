@@ -345,17 +345,34 @@ button[type="submit"]:active { transform: translateY(0); }
 .card-chip.amex_gp .chip-icon { background: rgba(0, 0, 0, 0.12); }
 .card-chip.unavailable { background: #eee; color: var(--text-secondary); font-weight: 500; }
 
-.rc-infant {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+.rc-meta {
   border-top: 1px solid var(--border);
   padding-top: 10px;
   margin-top: 4px;
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rc-meta-row {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
   align-items: flex-start;
   gap: 6px;
+  flex-wrap: wrap;
 }
-.rc-infant strong { color: var(--text); font-weight: 600; }
+.rc-meta-row strong { color: var(--text); font-weight: 600; }
+
+.yq-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.yq-badge.yq-yes { background: #fde2e1; color: #b3261e; }
+.yq-badge.yq-no { background: #e6f9ee; color: #1a7f4e; }
+.yq-badge.yq-varies { background: #fff3e0; color: #b5650a; }
 
 .confidence-flag {
   font-size: 0.68rem;

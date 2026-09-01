@@ -10,6 +10,11 @@ const STOPS_LABEL = { 0: "直行", 1: "1経由" };
 const CARD_ORDER = ["BONVOY", "AMEX_GP"];
 const CARD_SHORT_LABEL = { BONVOY: "Bonvoy", AMEX_GP: "Amex GP" };
 const CARD_ICON = { BONVOY: "M", AMEX_GP: "A" };
+const YQ_BADGE = {
+  yes: { label: "燃油サーチャージあり", cls: "yq-yes" },
+  no: { label: "燃油サーチャージなし", cls: "yq-no" },
+  varies: { label: "燃油サーチャージ変動あり", cls: "yq-varies" },
+};
 
 const AIRLINE_COLOR = {
   JL: "#C8102E", NH: "#13448F", UA: "#005DAA", DL: "#C01933", AA: "#0078D2",
@@ -196,7 +201,7 @@ function renderCabin(cabin) {
           .join("")
       : `<span class="card-chip unavailable">対応カードなし</span>`;
 
-    let infantHtml = "";
+    let infantRow = "";
     if (infantChecked) {
       let infantText = "要確認";
       if (row.infant_rule === "no_miles_required") infantText = "マイル不要（現金の諸税等のみ）";
@@ -208,8 +213,21 @@ function renderCabin(cabin) {
       const flag = row.infant_notes_ja
         ? `<span class="confidence-flag" title="${row.infant_notes_ja}">詳細</span>`
         : "";
-      infantHtml = `<div class="rc-infant">👶 <span><strong>2歳未満特典:</strong> ${infantText} ${flag}</span></div>`;
+      infantRow = `<div class="rc-meta-row">👶 <span><strong>2歳未満特典:</strong> ${infantText} ${flag}</span></div>`;
     }
+
+    const yq = YQ_BADGE[row.yq_status];
+    const yqBadgeHtml = yq ? `<span class="yq-badge ${yq.cls}">${yq.label}</span>` : "";
+    const feeText =
+      row.cash_fee_low_yen != null
+        ? `¥${row.cash_fee_low_yen.toLocaleString()}〜¥${row.cash_fee_high_yen.toLocaleString()}（片道）`
+        : "金額は要確認（予約時にご案内）";
+    const feeConfidenceFlag =
+      row.cash_fee_confidence && row.cash_fee_confidence !== "high"
+        ? `<span class="confidence-flag" title="${row.cash_fee_notes_ja || ""}">要確認</span>`
+        : "";
+    const surchargeTitle = row.surcharge_notes_ja ? ` title="${row.surcharge_notes_ja}"` : "";
+    const feesRow = `<div class="rc-meta-row"${surchargeTitle}>💴 <span><strong>諸税・燃油サーチャージ目安:</strong> ${feeText} ${feeConfidenceFlag}</span>${yqBadgeHtml}</div>`;
 
     card.innerHTML = `
       <div class="rc-top">
@@ -227,7 +245,10 @@ function renderCabin(cabin) {
         ${chartFlag}
       </div>
       <div class="card-chips">${chipsHtml}</div>
-      ${infantHtml}
+      <div class="rc-meta">
+        ${feesRow}
+        ${infantRow}
+      </div>
     `;
     container.appendChild(card);
   });

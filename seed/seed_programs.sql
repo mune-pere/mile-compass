@@ -1,11 +1,13 @@
 DELETE FROM programs;
 
-INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,can_book_ana,infant_rule,infant_pct,infant_notes_ja,infant_confidence,chart_confidence,notes_ja,sources) VALUES
+INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,can_book_ana,infant_rule,infant_pct,infant_notes_ja,infant_confidence,chart_confidence,charges_yq_own_metal,charges_yq_partner,surcharge_notes_ja,notes_ja,sources) VALUES
 
 ('ANA','ANAマイレージクラブ','ANA Mileage Club','star','region_pair',0,1,
  'reduced_percentage',0.10,
  'ANA運航便の場合、幼児(2歳未満・座席なし)特典航空券は大人に必要なマイル数の10%+税金等で発券可能。提携航空会社運航区間は現金の幼児運賃が適用されるケースがあるため要事前確認。',
  'high','medium',
+ 'yes','varies',
+ 'ANAは自社運航便の特典航空券に非常に高額な燃油特別付加運賃を課すことで有名(2026年9-10月発券分で北米・欧州は片道50,000〜56,000円)。金額はケロシン市場価格・為替レートに連動し隔月改定。スターアライアンス提携便(シンガポール航空・ニュージーランド航空・ベトナム航空など)をANAマイルで予約すると燃油サーチャージが免除されるケースがあり、「ANA便を避けて提携便を選ぶ」のが陸マイラーの定番節約術。',
  'ANAの国際線特典は距離帯ではなくゾーン制(地域ペア)。2025年6月から片道発券が可能に。表示額はレギュラーシーズンの目安。',
  'ana.co.jp公式/AwardWallet/FrequentMiler(2025-2026調査)'),
 
@@ -13,6 +15,8 @@ INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,ca
  'reduced_percentage',0.10,
  'JAL国際線特典航空券では、同伴の大人と同一クラスで座席不要の幼児(2歳未満)は大人必要マイル数の10%で発券可能(空港税等別途)。座席を使う小児は大人と同額。',
  'high','medium',
+ 'yes','varies',
+ '「JALは燃油サーチャージを廃止した」という情報は誤りで、JAL自社運航便の特典航空券には引き続き燃油特別付加運賃が課される(2026年9-10月発券分で北米・欧州は片道45,000〜50,000円、ANAよりやや安い水準)。一方、JALマイレージバンクの提携航空会社特典(アメリカン航空・カタール航空・ハワイアン/アラスカ航空・エールフランスなど)は燃油サーチャージが無料になるケースが多く、「JALマイルを貯めてJAL便ではなく提携便に交換する」のが定番の節約術。',
  '自社運航便はゾーン制、提携航空会社(oneworld等)特典は距離帯制。2025年6月改定で北米線などが値上げ。',
  'jal.co.jp公式/AwardWallet/10xTravel(2025-2026調査)'),
 
@@ -20,6 +24,8 @@ INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,ca
  'full_adult_miles_required',NULL,
  '【要注意】国際提携特典(JAL・キャセイ・大韓航空・BA・AA運航便)に2歳未満の幼児を追加する場合、大人と同額(100%)のマイルでの座席発券が必要というのが2018年11月公式発表以降の方針。米国内線・アラスカ運航便のみの旅程では通常のラップ幼児ポリシー(追加マイル不要)が適用される。JALマイル(10%)とは正反対の扱いなので要注意。',
  'high','medium',
+ 'no','varies',
+ '「燃油サーチャージを取らないプログラム」として陸マイラーの間で非常に有名。JAL・キャセイパシフィック・大韓航空などほぼ全ての提携航空会社特典で燃油サーチャージを転嫁しない(唯一の例外はブリティッシュ・エアウェイズとアイスランド航空)。「JALの特典航空券をJALマイレージバンクではなくアラスカ航空マイルで予約すると燃油サーチャージが丸ごと回避できる」という裏技が広く知られており、実質空港税等のみ(片道数千円程度)で発券できる。',
  '単一のグローバルチャートはなく提携社ごとの個別チャート。JAL運航便(米本土-東京)はビジネス60,000/ファースト70,000マイル(片道)が有名なスイートスポット。無料の片道ストップオーバーが可能。',
  'alaskaair.com公式/ThePointsGuy/FlyerTalk/FrequentMiler(2025-2026調査)'),
 
@@ -27,6 +33,8 @@ INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,ca
  'reduced_percentage',0.10,
  '2歳未満で座席を使用しない幼児は、大人予約の10%のAviosと諸税・手数料で追加可能。BA運航便・提携便いずれも同様。',
  'high','medium',
+ 'yes','varies',
+ 'BA運航便に対して業界屈指の高額な燃油サーチャージ(キャリア課徴金)を課すことで悪名高い(東京-ロンドン間で片道65,000円程度、2026年時点)。回避策として、BA便ではなくoneworld提携便(日本航空・カタール航空・アイベリア航空など)を選ぶことで燃油サーチャージを大幅に削減、またはゼロにできる。特にJAL国内線区間はアビオス特典でほぼゼロ。',
  '9ゾーンの距離帯チャート(Off-Peak/Peak制)。日本はゾーン7。2025年12月の改定でゾーン5-9が値上げ。',
  'headforpoints.com/AwardWallet/OneMileAtATime(2025-2026調査)'),
 
@@ -34,6 +42,8 @@ INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,ca
  'reduced_percentage',0.10,
  '2歳未満のラップ幼児は大人予約の約10%のVirgin Pointsで追加可能(税金等別途)。',
  'medium','medium',
+ 'no','varies',
+ '日本には自社便就航なし。ANA運航便を予約する場合の燃油サーチャージは比較的低め〜なしとされ、これがVirgin PointsでANAビジネスクラスを狙う際の魅力の一つ。正確な円建て金額は未確認のため要問い合わせ。',
  '2023年にSkyTeam加盟したが、ANA運航便(日本-北米)を予約できる独自の2社間提携は継続。ANAの777ビジネス「ザ・ルーム」を片道52,500〜60,000ポイントで予約できる有名なスイートスポット(2024年5月改定後の価格)。can_book_ana=trueはANA-Virgin間の2社間提携に基づく(アライアンス上の推定を上書き)。',
  'PrinceOfTravel/OneMileAtATime/ThriftyTraveler(2025-2026調査)'),
 
@@ -41,41 +51,53 @@ INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,ca
  'reduced_percentage',0.10,
  '2歳未満のラップ幼児は大人予約マイル数の約10%で追加可能というのが一般的理解(動的価格制のため要都度確認)。',
  'medium','low',
+ 'yes','varies',
+ 'エールフランス/KLM自社運航便は業界でも屈指の高額なキャリア課徴金(燃油サーチャージ相当)を課すことで知られ、2026年に入り複数回値上げされた。一方、提携便のうちデルタ航空・アエロメヒコ運航区間はサーチャージがほぼゼロ。JALについては情報源により結果が割れており(欧州行きはほぼゼロ、日本-米州直行は高額との報告あり)要確認。ヴァージン・アトランティックのポイントで同じエールフランス便を予約する方が本家フライングブルーより安いという回避策も知られる。',
  '2025年1月から固定距離帯を廃止し動的価格制(フロア価格制)に移行。表示額はフロア価格からの実勢レンジ目安。',
- 'ThePointsGuy/AwardTravelFinder(2025年調査、中程度の確度)'),
+ 'ThePointsGuy/FrequentMiler/ThriftyTraveler/deeparrival.com(2026年調査、日本発の円建て実額は未確認)'),
 
 ('KE','大韓航空 SKYPASS','Korean Air SKYPASS','skyteam','distance_band',0,0,
  'reduced_percentage',0.10,
  '2歳未満で座席を使用しない幼児は、大人特典マイル数の10%で発券可能(国際線)。米国内線区間は無料。',
  'high','medium',
+ 'yes','varies',
+ '大韓航空は自社運航特典に燃油サーチャージを課すことで知られる(業界内では標準的な水準)。提携便(SkyTeam他社)経由の場合は運航会社の方針に準じるため変動あり。円建ての具体的な金額は本サイトでは未確認のため予約時に要確認。',
  '2023年4月から真の距離帯制チャートに移行。日本-韓国の短距離区間は非常に安い(10,000〜12,500マイル)。プレミアムエコノミー区分は基本的になし。',
- 'AwardWallet/ViewFromTheWing/10xTravel(2025年調査)'),
+ 'AwardWallet/ViewFromTheWing/10xTravel(2025年調査、燃油サーチャージ円建て額は未確認)'),
 
 ('SQ','シンガポール航空 クリスフライヤー','Singapore Airlines KrisFlyer','star','region_pair',0,1,
  'reduced_percentage',0.10,
  '2歳未満のラップ幼児特典航空券は大人特典マイルの10%+現金(諸税・燃油サーチャージ分)が必要。オンライン予約不可、電話でのSQ予約センターへの追加が必要。',
  'high','medium',
+ 'no','varies',
+ 'シンガポール航空クリスフライヤーは燃油サーチャージを課さないプログラムとして知られ、諸税・空港使用料のみで発券できることが多い。提携便(スターアライアンス他社)経由の場合は運航会社次第で変動。円建ての具体的な金額は本サイトでは未確認のため予約時に要確認。',
  '2025年11月に地域制チャートを改定(東南アジア/南西太平洋のエコノミーは値下げ、プレミアム系や欧米・中東は値上げ)。北米は西海岸/東海岸の平均値を表示。多くの便はシンガポール(SIN)乗り継ぎ。',
- 'singaporeair.com公式PDF/MileLion/SuitesMile(2025年調査)'),
+ 'singaporeair.com公式PDF/MileLion/SuitesMile(2025年調査、燃油サーチャージ円建て額は未確認)'),
 
 ('CX','キャセイパシフィック航空 アジアマイル','Cathay Pacific Asia Miles','oneworld','distance_band',1,0,
  'no_miles_required',NULL,
  '2歳未満で座席を使用しない幼児にマイルは一切不要(追加マイル0)。ただし現金での諸税・幼児運賃相当額は必要(米国発着は大人運賃の25%、その他国際線は10%+税金)。マイル建てでは最も家族に優しい部類。',
  'high','medium',
+ 'no','varies',
+ 'キャセイパシフィック航空アジアマイルは燃油サーチャージを課さないプログラムとして非常に有名で、幼児特典と並びファミリーに優しい部類とされる。提携便(oneworld他社)経由の場合は運航会社次第で変動。円建ての具体的な金額は本サイトでは未確認のため予約時に要確認。',
  '真の距離帯制(Ultra-short/Short Type1・Type2/Medium/Long/Ultra-long)。日本発着はType2(割高)区分。2025年4月・2026年5月に改定(長距離エコノミーは値下げ、ビジネス・ファーストは値上げ傾向)。',
- 'cathaypacific.com公式FAQ/MainlyMiles/AustralianFrequentFlyer(2026年5月時点)'),
+ 'cathaypacific.com公式FAQ/MainlyMiles/AustralianFrequentFlyer(2026年5月時点、燃油サーチャージ円建て額は未確認)'),
 
 ('TK','ターキッシュ エアラインズ マイル・アンド・スマイルズ','Turkish Airlines Miles&Smiles','star','region_pair',0,1,
  'reduced_percentage',0.10,
  '2歳未満のラップ幼児特典航空券は大人特典マイルの10%(100マイル単位で切り上げ)で発券可能。マイル建てで10%という数少ない好条件プログラムの一つ。同伴大人1名につき1名まで無座席特典適用。',
  'high','medium',
+ 'varies','varies',
+ 'ターキッシュエアラインズは歴史的に燃油サーチャージが比較的低水準とされてきたが、近年一部区間で追加される報告もあり変動あり。円建ての具体的な金額は本サイトでは未確認のため予約時に要確認。',
  '地域ペア制(距離帯ではない)。2024年2月・2025年12月に大幅値上げ。日本発着の具体的な数値はトルコ発中心の公表チャートからの推定のため確度はやや低め。',
- 'turkishairlines.com公式/FrequentMiler/PrinceOfTravel(2025年調査)'),
+ 'turkishairlines.com公式/FrequentMiler/PrinceOfTravel(2025年調査、燃油サーチャージ円建て額は未確認)'),
 
 ('AA','アメリカン航空 アドバンテージ','American Airlines AAdvantage','oneworld','dynamic',1,0,
  'child_fare_required',0.10,
  '米国内線・カナダ・プエルトリコ等発着は幼児追加費用なし。国際線特典航空券は幼児運賃として大人区間の現金正規運賃の10%相当額を別途支払う必要(マイルではなく現金ベース)。予約はAA予約センターへの電話が必要。',
  'high','medium',
+ 'no','no',
+ '米国系航空会社は米運輸省(DOT)の規制もあり燃油サーチャージを別建てで課さないのが一般的。JAL運航便をAAマイルで予約した場合も燃油サーチャージが転嫁されないことが広く知られており、JALマイレージバンクで直接予約するより現金負担が少なくなるケースが多い。',
  'JAL運航便(oneworld提携)への提携チャートは概ね固定だが、2026年7月からJALの乗継便プレミアムクラスが大幅値上げ(ビジネス60,000→80,000、ファースト80,000→100,000マイル)。60,000ボーナス特典なし(数少ない例外プログラム)。',
  'SimpleFlying/UpgradedPoints/PointsMilesAndBling(2026年7月時点)'),
 
@@ -83,6 +105,8 @@ INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,ca
  'varies',NULL,
  '米国内線・プエルトリコ等発着は幼児無料。国際線は以前は現金運賃の10%(上限250ドル)だったが、現在は路線・クラス別の定額20〜250ドル+税金制(マイル追加消費なし、現金のみ)。',
  'medium','low',
+ 'no','no',
+ '米国系航空会社は燃油サーチャージを別建てで課さないのが一般的。ANA運航便をユナイテッドマイルで予約した場合も燃油サーチャージが転嫁されないことが広く知られており、ANAマイレージクラブで直接予約するより現金負担が少なくなるのが人気の理由の一つ。',
  '2019年に固定チャートを廃止し完全動的価格制。会員のカード保有有無で価格が大きく変わる(例: LA-東京ビジネス、カード会員100,000マイル vs 非会員170,000マイル)。Bonvoyボーナスは60,000pt→30,000マイルと他社より優遇。',
  'OneMileAtATime/ThePointsGuy/AwardWallet(2025-2026年調査)'),
 
@@ -90,6 +114,8 @@ INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,ca
  'varies',NULL,
  '国内線は小児・幼児とも大人と同一ルール(基本無料)。国際線は現金ベースで大人運賃の10%程度の幼児運賃が別途必要(マイル追加消費なし)。ラップ幼児はマイル積算対象外。',
  'medium','low',
+ 'no','no',
+ '米国系航空会社は燃油サーチャージを別建てで課さないのが一般的。デルタはエールフランスKLMフライングブルー等の提携チャートでも「サーチャージ免除対象運航会社」として明記されることが多い。',
  '2015年から完全動的価格制で公表チャートなし。羽田はデルタのフォーカス都市のため実例は豊富。2025年2月に大幅値上げがあり、ビジネスクラスは片道85,000〜200,000マイルと非常に振れ幅が大きい。60,000ボーナス特典なし。',
  'MightyTravels/ThriftyTraveler/Travelsort/delta.com公式(2025年調査)'),
 
@@ -97,6 +123,8 @@ INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,ca
  'reduced_percentage',0.10,
  '2歳未満のラップ幼児特典航空券は大人特典マイルの10%+税金等で追加可能。',
  'medium','low',
+ 'varies','varies',
+ 'エティハド航空は自社便に燃油サーチャージを課すことがあるとされるが、日本に就航しておらず日本発着の実例に乏しいため詳細不明。',
  '【重要】エティハド航空は日本に就航しておらず、日本発着に直結する提携ネットワークも限定的。本比較サイトでは実質利用できないプログラムとして参考掲載のみ(検索結果には基本的に表示されません)。',
  'AwardTravelFinder/MileValue/ThePointsGuy(2025年調査)。日本発着データなしのため区間データは未投入'),
 
@@ -104,5 +132,7 @@ INSERT INTO programs (code,name_ja,name_en,alliance,pricing_type,can_book_jal,ca
  'reduced_percentage',0.10,
  '2歳未満のラップ幼児は大人特典予約のAviosの10%で追加可能というのが公式方針(エコノミー限定・運航区間により条件あり)。現金の幼児運賃が別途必要な場合もある。BAとの実装差についてコミュニティで指摘あり。',
  'medium','medium',
+ 'no','varies',
+ 'カタール航空は同じAvios通貨のBAと異なり燃油サーチャージが比較的低いプログラムとして知られる。JAL運航便をカタール航空Aviosで予約する場合もBA経由より安く済むケースが多いとされるが、円建ての具体的な金額は本サイトでは未確認のため予約時に要確認。',
  '2023年にAvios制へ移行した提携チャート(公表)を使用。カタール運航便は別建ての非公表・動的価格。日本からはドーハ(DOH)乗継が前提のため、表示距離は直行区間の概算(実際の乗継距離より短く出る場合あり)。',
- 'PrinceOfTravel/OneMileAtATime/AwardWallet(2025年調査)');
+ 'PrinceOfTravel/OneMileAtATime/AwardWallet(2025年調査、燃油サーチャージ円建て額は未確認)');
