@@ -84,4 +84,6 @@ INSERT INTO airports (iata,name_ja,city_ja,country_ja,kana,region,lat,lon,is_jap
 ('BOM','チャトラパティ・シヴァージー国際空港','ムンバイ','インド','むんばい ムンバイ いんど インド mumbai bom india', 'South Asia',19.0887,72.8679,0),
 ('BLR','ケンペゴウダ国際空港','バンガロール','インド','ばんがろーる バンガロール bangalore blr india', 'South Asia',13.1986,77.7066,0),
 ('CMB','バンダラナイケ国際空港','コロンボ','スリランカ','ころんぼ コロンボ すりらんか スリランカ colombo cmb srilanka', 'South Asia',7.1808,79.8841,0),
-('KTM','トリブバン国際空港','カトマンズ','ネパール','かとまんず カトマンズ ねぱーる ネパール kathmandu ktm nepal', 'South Asia',27.6966,85.3591,0);
+('KTM','トリブバン国際空港','カトマンズ','ネパール','かとまんず カトマンズ ねぱーる ネパール kathmandu ktm nepal', 'South Asia',27.6966,85.3591,0),
+-- 中南米(専用の地域チャートは未整備のため北米(North America)のチャートを暫定的に流用。プログラムによって実際の区分が異なる可能性あり)
+('CUN','カンクン国際空港','カンクン','メキシコ','かんくん カンクン めきしこ メキシコ cancun cun mexico', 'North America',21.0365,-86.8771,0);
