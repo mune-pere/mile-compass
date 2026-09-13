@@ -134,3 +134,30 @@ INSERT INTO flights (origin_iata,dest_iata,operating_airline_code,operating_airl
 ('MMY','HND','NH','全日空(ANA)','star',0,NULL,NULL),
 ('ISG','HND','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
 ('ISG','HND','NH','全日空(ANA)','star',0,NULL,NULL);
+
+-- ===== 追加した目的地向けの直行便ネットワーク(判明している主要路線のみ。就航状況は変動するため参考情報) =====
+INSERT INTO flights (origin_iata,dest_iata,operating_airline_code,operating_airline_ja,alliance,stops,via_ja,notes_ja) VALUES
+('HND','ATL','DL','デルタ航空','skyteam',0,NULL,NULL),
+('HND','IAD','NH','全日空(ANA)','star',0,NULL,NULL),
+('HND','BOS','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','DFW','AA','アメリカン航空','oneworld',0,NULL,NULL),
+('HND','IAH','NH','全日空(ANA)','star',0,NULL,NULL),
+('HND','YYZ','AC','エア・カナダ','star',0,NULL,NULL),
+
+('HND','MUC','NH','全日空(ANA)','star',0,NULL,NULL),
+
+('HND','KUL','MH','マレーシア航空','oneworld',0,NULL,NULL),
+
+('HND','PEK','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','PEK','NH','全日空(ANA)','star',0,NULL,NULL),
+('HND','PEK','CA','中国国際航空','star',0,NULL,NULL),
+
+('HND','MNL','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','MNL','NH','全日空(ANA)','star',0,NULL,NULL),
+('HND','MNL','PR','フィリピン航空','oneworld',0,NULL,NULL),
+
+('HND','SGN','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','SGN','NH','全日空(ANA)','star',0,NULL,NULL),
+
+('HND','HAN','JL','日本航空(JAL)','oneworld',0,NULL,NULL),
+('HND','HAN','NH','全日空(ANA)','star',0,NULL,NULL);
